@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+
+const chalk = require('chalk');
+const commander = require('commander');
+
+
+const display = require('../lib/display.js');
+const GitaRequest = require('../lib/GitaRequest');
+const log = require('../lib/logger.js');
+const package = require('../package.json');
+const util = require('../lib/util.js');
+const vcs = require('../lib/vcs.js');
+
+
+const gita = new GitaRequest();
+
+
+commander
+  .version(package.version)
+  .usage('[options] <command>')
+  .option('-v, --verbose', 'Enable verbose logging')
+
+commander.command('user')
+  .alias('u')
+  .description('Display information about the authenticated user')
+  .action(() => {
+    cmd = 'user'
+    return gita.onReady()
+      .then(() => {
+        const fields = ['login', 'id', 'name'];
+        fields.forEach(key => {
+          const paddedKey = util.padRight(key + ':', fields, 1);
+          console.log(paddedKey, chalk.white(gita.user[key]))
+        })
+      })
+  })
+
+commander.command('list-repos')
+  .alias('ls')
+  .description('List repositories associated with the authenticated user')
+  .action(() => {
+    cmd = 'list-repos'
+    return gita.getRepos()
+      .then(repos => {
+        display.displayRepos(repos.myRepos, 'Owned Repositories');
+        display.displayRepos(repos.otherRepos, 'Contributor');
+      })
+  })
+
+commander.command('create-repository <name>')
+  .alias('new')
+  .description('Create a new repository')
+  .option('-d, --description <description>', 'Set a description for the new repo', 'Created by Gita')
+  .option('-p, --private', 'Make the new repository private', false)
+  .option('-I, --init', 'Initialize the current directory and push to the new repository', false)
+  .action((name, options) => {
+    const description = options.description
+    const init = !!options.init
+    const isPrivate = !!options.private
+    
+    console.log('Creating repository: ' + chalk.white(name));
+
+    return gita.createRepo(name, description, isPrivate)
+      .then(response => {
+        switch (response.statusCode) {
+          case 422:
+            return display.validationError(response.body);
+            break;
+
+          case 201:
+            display.newRepoProps(response.body);
+            return vcs.init(response.body);
+            break;
+
+          default:
+            console.log('UNKNOWN STATUS CODE', response.statusCode);
+        }
+      })
+
+      .catch(err => log.error('ERROR', err))
+  })
+
+commander.parse(process.argv);
+
+if (commander.verbose === true) {
+  log.setLevel('silly');
+}
+
+
+
+

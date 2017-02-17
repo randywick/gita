@@ -1,0 +1,21 @@
+{
+  "name": "Gita",
+  "version": "0.0.1",
+  "description": "A javascript CLI for interacting with the Github API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "gita": "./bin/gita"
+  },
+  "author": "rw",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^1.1.3",
+    "commander": "^2.9.0",
+    "gitignore": "^0.6.0",
+    "moment": "^2.17.1",
+    "winston": "^2.3.1"
+  }
+}
